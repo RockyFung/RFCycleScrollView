@@ -23,6 +23,8 @@ NSString * const ID = @"cycleCell";
 @property (nonatomic, assign) NSInteger totalItemsCount;
 @property (nonatomic, strong) NSArray *imagePathsGroup;
 @property (nonatomic, weak) NSTimer *timer;
+@property (nonatomic, weak) UIControl *pageControl;
+@property (nonatomic, strong) UIImageView *backgroundImageView; // 当imageURLs为空时的背景图
 @end
 
 @implementation RFCycleScrollView
@@ -40,8 +42,17 @@ NSString * const ID = @"cycleCell";
 
 - (void)initialization{
     _infiniteLoop = YES;
-    _autoScrollTimeInterval = 2.0;
+    _autoScrollTimeInterval = 3.0;
     _autoScroll = YES;
+    _showPageControl = YES;
+    _pageControlDotSize = kCycleScrollViewInitialPageControlDotSize;
+    _currentPageDotColor = [UIColor whiteColor];
+    _pageDotColor = [UIColor lightGrayColor];
+    _pageControlAliment = SDCycleScrollViewPageContolAlimentCenter;
+    _pageControlBottomOffset = 0;
+    _pageControlRightOffset = 0;
+    
+    self.backgroundColor = [UIColor colorWithWhite:0.8 alpha:1.0];
 }
 
 
@@ -49,8 +60,66 @@ NSString * const ID = @"cycleCell";
 {
     RFCycleScrollView *cycleScrollView = [[self alloc] initWithFrame:frame];
     cycleScrollView.delegate = delegate;
-//    cycleScrollView.placeholderImage = placeholderImage;
+    cycleScrollView.placeholderImage = placeholderImage;
     return cycleScrollView;
+}
+
+
+#pragma - pageControl设置
+- (void)setShowPageControl:(BOOL)showPageControl{
+    _showPageControl = showPageControl;
+    _pageControl.hidden = !showPageControl;
+}
+
+- (void)setPageControlDotSize:(CGSize)pageControlDotSize{
+    _pageControlDotSize = pageControlDotSize;
+    [self setupPageControl];
+}
+
+- (void)setCurrentPageDotColor:(UIColor *)currentPageDotColor{
+    _currentPageDotColor = currentPageDotColor;
+
+        UIPageControl *pageControl = (UIPageControl *)_pageControl;
+        pageControl.currentPageIndicatorTintColor = currentPageDotColor;
+
+}
+
+- (void)setPageDotColor:(UIColor *)pageDotColor{
+    _pageDotColor = pageDotColor;
+    if ([self.pageControl isKindOfClass:[UIPageControl class]]) {
+        UIPageControl *pageControl = (UIPageControl *)_pageControl;
+        pageControl.pageIndicatorTintColor = pageDotColor;
+    }
+}
+
+- (void)setupPageControl{
+    if (_pageControl) {
+        [_pageControl removeFromSuperview];
+    }
+    if (self.imagePathsGroup.count == 0 ) return;
+    if ((self.imagePathsGroup.count == 1) && self.hidesForSinglePage) return;
+    int indexOnPageControl = [self pageControlIndexWithCurrentCellIndex:[self currentIndex]];
+    UIPageControl *pageControl = [[UIPageControl alloc]init];
+    pageControl.numberOfPages = self.imagePathsGroup.count;
+    pageControl.currentPageIndicatorTintColor = self.currentPageDotColor;
+    pageControl.pageIndicatorTintColor = self.pageDotColor;
+    pageControl.userInteractionEnabled = NO;
+    pageControl.currentPage = indexOnPageControl;
+    [self addSubview:pageControl];
+    _pageControl = pageControl;
+}
+
+
+
+#pragma - 图片设置
+- (void)setPlaceholderImage:(UIImage *)placeholderImage{
+    _placeholderImage = placeholderImage;
+    if (!self.backgroundImageView) {
+        UIImageView *bg = [UIImageView new];
+        bg.contentMode = UIViewContentModeScaleAspectFit;
+        [self insertSubview:bg belowSubview:self.mainView];
+        self.backgroundImageView = bg;
+    }
 }
 
 - (void)setLocalizationImageNamesGroup:(NSArray *)localizationImageNamesGroup{
@@ -61,7 +130,7 @@ NSString * const ID = @"cycleCell";
 - (void)setImagePathsGroup:(NSArray *)imagePathsGroup{
     [self invalidateTimer];
     _imagePathsGroup = imagePathsGroup;
-    _totalItemsCount = self.infiniteLoop ? self.imagePathsGroup.count * 100 : self.imagePathsGroup.count;
+    _totalItemsCount = self.infiniteLoop ? self.imagePathsGroup.count * 200 : self.imagePathsGroup.count;
     
     if (imagePathsGroup.count != 1) {
         self.mainView.scrollEnabled = YES;
@@ -69,6 +138,8 @@ NSString * const ID = @"cycleCell";
     }else{
         self.mainView.scrollEnabled = NO;
     }
+    
+    [self setupPageControl];
     [self.mainView reloadData];
 }
 
@@ -126,8 +197,6 @@ NSString * const ID = @"cycleCell";
     int index = 0;
     if (_flowLayout.scrollDirection == UICollectionViewScrollDirectionHorizontal) {
         index = (_mainView.contentOffset.x + _flowLayout.itemSize.width * 0.5) / _flowLayout.itemSize.width;
-    } else {
-        index = (_mainView.contentOffset.y + _flowLayout.itemSize.height * 0.5) / _flowLayout.itemSize.height;
     }
     
     return MAX(0, index);
@@ -146,7 +215,6 @@ NSString * const ID = @"cycleCell";
     [_mainView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:targetIndex inSection:0] atScrollPosition:UICollectionViewScrollPositionNone animated:YES];
 }
 
-
 - (int)pageControlIndexWithCurrentCellIndex:(NSInteger)index
 {
     return (int)index % self.imagePathsGroup.count;
@@ -163,11 +231,11 @@ NSString * const ID = @"cycleCell";
     mainView.pagingEnabled = YES;
     mainView.showsHorizontalScrollIndicator = NO;
     mainView.showsVerticalScrollIndicator = NO;
-    [mainView registerClass:[RFCollectionViewCell class] forCellWithReuseIdentifier:ID];
     mainView.dataSource = self;
     mainView.delegate = self;
     mainView.scrollsToTop = NO;
     [self addSubview:mainView];
+    [mainView registerClass:[RFCollectionViewCell class] forCellWithReuseIdentifier:ID];
     _mainView = mainView;
 }
 
@@ -184,7 +252,29 @@ NSString * const ID = @"cycleCell";
         }
         [_mainView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:targetIndex inSection:0] atScrollPosition:UICollectionViewScrollPositionNone animated:NO];
     }
+    
+    CGSize size = CGSizeZero;
+
+        size = CGSizeMake(self.imagePathsGroup.count * self.pageControlDotSize.width * 1.5, self.pageControlDotSize.height);
+
+    
+    CGFloat x = (self.width - size.width) * 0.5;
+    if (self.pageControlAliment == SDCycleScrollViewPageContolAlimentRight) {
+        x = self.mainView.width - size.width - 10;
+    }
+    
+    CGFloat y = self.mainView.height - size.height - 10;
+    CGRect pageControlFrame = CGRectMake(x, y, size.width, size.height);
+    pageControlFrame.origin.y -= self.pageControlBottomOffset;
+    pageControlFrame.origin.x -= self.pageControlRightOffset;
+    self.pageControl.frame = pageControlFrame;
+    self.pageControl.hidden = !_showPageControl;
+    
+    if (self.backgroundImageView) {
+        self.backgroundImageView.frame = self.bounds;
+    }
 }
+
 
 
 #pragma mark - UICollectionViewDataSource
@@ -201,7 +291,7 @@ NSString * const ID = @"cycleCell";
     NSString *imagePath = self.imagePathsGroup[itemIndex];
     if ([imagePath isKindOfClass:[NSString class]]) {
         if ([imagePath hasPrefix:@"http"]) {
-            [cell.imageView sd_setImageWithURL:[NSURL URLWithString:imagePath] placeholderImage:nil];
+            [cell.imageView sd_setImageWithURL:[NSURL URLWithString:imagePath] placeholderImage:self.placeholderImage];
         }else{
             UIImage *image = [UIImage imageNamed:imagePath];
             if (!image) {
@@ -226,7 +316,13 @@ NSString * const ID = @"cycleCell";
 
 #pragma mark - UIScrollViewDelegate
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView{
-
+    if (!self.imagePathsGroup.count) {
+        return;
+    }
+    int itemIndex = [self currentIndex];
+    int indexOnPageControl = [self pageControlIndexWithCurrentCellIndex:itemIndex];
+    UIPageControl *pageControl = (UIPageControl *)_pageControl;
+    pageControl.currentPage = indexOnPageControl;
 }
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView
@@ -250,7 +346,7 @@ NSString * const ID = @"cycleCell";
 
 - (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView
 {
-
+    if (!self.imagePathsGroup.count) return; // 解决清除timer时偶尔会出现的问题
 }
 
 - (void)invalidateTimer

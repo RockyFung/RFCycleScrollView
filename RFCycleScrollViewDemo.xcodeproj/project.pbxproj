@@ -203,7 +203,6 @@
 		5C6602C81D406F3200DE4EA9 /* RFCycleScrollView */ = {
 			isa = PBXGroup;
 			children = (
-				5C6603051D40700700DE4EA9 /* PageControl */,
 				5C6603021D406FD900DE4EA9 /* UIView+RFAdd.h */,
 				5C6603031D406FD900DE4EA9 /* UIView+RFAdd.m */,
 				5C6602FC1D406F9100DE4EA9 /* RFCycleScrollView.h */,
@@ -260,13 +259,6 @@
 				5C6602EB1D406F4900DE4EA9 /* UIView+WebCacheOperation.m */,
 			);
 			path = SDWebImage;
-			sourceTree = "<group>";
-		};
-		5C6603051D40700700DE4EA9 /* PageControl */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = PageControl;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

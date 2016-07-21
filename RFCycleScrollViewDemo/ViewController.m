@@ -27,7 +27,13 @@
     
     
     RFCycleScrollView *cycleView = [RFCycleScrollView cycleScrollViewWithFrame:CGRectMake(0, 50, [UIScreen mainScreen].bounds.size.width, 180) delegate:self placeholderImage:nil];
-    cycleView.imageURLStringsGroup = imagesURLStrings;
+    cycleView.autoScrollTimeInterval = 3; // 滚动间隔
+    cycleView.currentPageDotColor = [UIColor redColor];
+    cycleView.pageDotColor = [UIColor whiteColor];
+    cycleView.pageControlAliment = SDCycleScrollViewPageContolAlimentCenter;
+    cycleView.pageControlDotSize = CGSizeMake(20, 20);
+    cycleView.imageURLStringsGroup = imagesURLStrings; // 网络图片
+//    cycleView.localizationImageNamesGroup = @[@"1",@"2",@"3"]; // 本地图片
     [self.view addSubview:cycleView];
 }
 
